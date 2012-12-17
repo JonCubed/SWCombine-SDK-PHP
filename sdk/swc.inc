@@ -138,7 +138,26 @@ class SWC {
 		$response = self::MakeRequest(OAUTH_ENDPOINT_TOKEN, RequestMethods::Post, $values);
 		
 		if (isset($response->error)) {
-			throw new \Exception('Failed to get token. Reason: '.$response->error);
+			throw new SWCombineException('Failed to get token. Reason: '.$response->error, $response->error);
+		}
+		
+		$token = new OAuthToken($response->expires_in, $response->access_token, isset($response->refresh_token) ? $response->refresh_token : null);
+		return $token;
+	}
+	
+	public function RefreshToken(OAuthToken $token) {
+		$values = array
+				  	(
+			  		 	"refresh_token" => $token->get_refresh_token()
+				  		,"client_id" => $this->client_id
+				  		,"client_secret" => $this->client_secret
+				  		,"grant_type" => GrantTypes::RefreshToken
+		  		  	);
+
+		$response = self::MakeRequest(OAUTH_ENDPOINT_TOKEN, RequestMethods::Post, $values);
+
+		if (isset($response->error)) {
+			throw new SWCombineException('Failed to get token. Reason: '.$response->error, $response->error);
 		}
 		
 		$token = new OAuthToken($response->expires_in, $response->access_token, isset($response->refresh_token) ? $response->refresh_token : null);
@@ -169,7 +188,7 @@ class SWC {
 			$headers[] = 'Content-length: '.strlen($body);
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
 		}
-				
+						
 		// set url and headers
 		curl_setopt($ch, CURLOPT_URL, $uri);
 		curl_setopt($ch, CURLOPT_HEADER, 0);
